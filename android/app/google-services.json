@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "312547827579",
+    "project_id": "saude-intestinal-tcc",
+    "storage_bucket": "saude-intestinal-tcc.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:312547827579:android:3cbee132e553b75249a7de",
+        "android_client_info": {
+          "package_name": "com.example.fluttertcc"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyArDYFV978iulwn7HwWcvUfzZA021FEjYE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

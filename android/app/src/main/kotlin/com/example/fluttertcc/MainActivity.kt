@@ -1,4 +1,4 @@
-package com.example.fluttertcc
+package com.giovana.saudeintestinal
 
 import io.flutter.embedding.android.FlutterActivity
 
