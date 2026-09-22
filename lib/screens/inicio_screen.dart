@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/registro_alimentacao.dart';
 import '../models/registro_sintoma.dart';
 import '../services/alimentacao_service.dart';
+import '../services/autenticacao_service.dart';
 import '../services/sintomas_service.dart';
 import '../widgets/navegacao_principal.dart';
 
@@ -23,6 +24,7 @@ class _InicioScreenState extends State<InicioScreen> {
 
   late final Stream<List<RegistroSintoma>> _sintomas;
   late final Stream<List<RegistroAlimentacao>> _refeicoes;
+  final _autenticacaoService = AutenticacaoService();
 
   @override
   void initState() {
@@ -301,6 +303,37 @@ class _InicioScreenState extends State<InicioScreen> {
     );
   }
 
+  Future<void> _confirmarSaida() async {
+    final confirmou = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Sair da conta?'),
+        content: const Text(
+          'Você precisará informar seu e-mail e senha para entrar novamente.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Sair'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmou != true || !mounted) return;
+    await _autenticacaoService.sair();
+    if (!mounted) return;
+    Navigator.pushNamedAndRemoveUntil(
+      context,
+      '/autenticacao',
+      (route) => false,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -312,6 +345,13 @@ class _InicioScreenState extends State<InicioScreen> {
           'SAÚDE INTESTINAL',
           style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
         ),
+        actions: [
+          IconButton(
+            onPressed: _confirmarSaida,
+            icon: const Icon(Icons.logout),
+            tooltip: 'Sair',
+          ),
+        ],
       ),
       body: StreamBuilder<List<RegistroSintoma>>(
         stream: _sintomas,

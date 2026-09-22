@@ -1,9 +1,9 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'firebase_options.dart';
+import 'screens/autenticacao_gate.dart';
 import 'screens/historico_screen.dart';
 import 'screens/inicio_screen.dart';
 import 'screens/lista_alimentacao_screen.dart';
@@ -16,10 +16,6 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-
-  if (FirebaseAuth.instance.currentUser == null) {
-    await FirebaseAuth.instance.signInAnonymously();
-  }
 
   runApp(const MyApp());
 }
@@ -69,6 +65,7 @@ class MyApp extends StatelessWidget {
       ),
 
       routes: {
+        '/autenticacao': (context) => const AutenticacaoGate(),
         '/inicio': (context) => const InicioScreen(),
         '/sintomas': (context) => const ListaSintomasScreen(),
         '/novo-sintoma': (context) => const RegistroSintomasScreen(),
@@ -78,7 +75,7 @@ class MyApp extends StatelessWidget {
         '/historico': (context) => const HistoricoScreen(),
       },
 
-      home: const InicioScreen(),
+      home: const AutenticacaoGate(),
     );
   }
 }
