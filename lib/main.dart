@@ -1,8 +1,12 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'firebase_options.dart';
+import 'screens/historico_screen.dart';
+import 'screens/lista_alimentacao_screen.dart';
+import 'screens/lista_sintomas_screen.dart';
 import 'screens/registro_alimentacao_screen.dart';
 import 'screens/registro_sintomas_screen.dart';
 
@@ -10,6 +14,10 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  if (FirebaseAuth.instance.currentUser == null) {
+    await FirebaseAuth.instance.signInAnonymously();
+  }
 
   runApp(const MyApp());
 }
@@ -59,11 +67,14 @@ class MyApp extends StatelessWidget {
       ),
 
       routes: {
-        '/sintomas': (context) => const RegistroSintomasScreen(),
-        '/alimentacao': (context) => const RegistroAlimentacaoScreen(),
+        '/sintomas': (context) => const ListaSintomasScreen(),
+        '/novo-sintoma': (context) => const RegistroSintomasScreen(),
+        '/alimentacao': (context) => const ListaAlimentacaoScreen(),
+        '/nova-refeicao': (context) => const RegistroAlimentacaoScreen(),
+        '/historico': (context) => const HistoricoScreen(),
       },
 
-      home: const RegistroSintomasScreen(),
+      home: const ListaSintomasScreen(),
     );
   }
 }
