@@ -5,9 +5,11 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'firebase_options.dart';
 import 'screens/historico_screen.dart';
+import 'screens/inicio_screen.dart';
 import 'screens/lista_alimentacao_screen.dart';
 import 'screens/lista_sintomas_screen.dart';
 import 'screens/registro_alimentacao_screen.dart';
+import 'screens/registro_habitos_screen.dart';
 import 'screens/registro_sintomas_screen.dart';
 
 Future<void> main() async {
@@ -67,14 +69,16 @@ class MyApp extends StatelessWidget {
       ),
 
       routes: {
+        '/inicio': (context) => const InicioScreen(),
         '/sintomas': (context) => const ListaSintomasScreen(),
         '/novo-sintoma': (context) => const RegistroSintomasScreen(),
         '/alimentacao': (context) => const ListaAlimentacaoScreen(),
         '/nova-refeicao': (context) => const RegistroAlimentacaoScreen(),
+        '/habitos': (context) => const RegistroHabitosScreen(),
         '/historico': (context) => const HistoricoScreen(),
       },
 
-      home: const ListaSintomasScreen(),
+      home: const InicioScreen(),
     );
   }
 }

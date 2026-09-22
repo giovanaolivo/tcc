@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../models/registro_alimentacao.dart';
+import '../models/registro_habito.dart';
 import '../models/registro_sintoma.dart';
 import '../services/alimentacao_service.dart';
+import '../services/habitos_service.dart';
 import '../services/sintomas_service.dart';
 import '../widgets/navegacao_principal.dart';
 
@@ -18,14 +20,17 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
 
   final _sintomasService = SintomasService();
   final _alimentacaoService = AlimentacaoService();
+  final _habitosService = HabitosService();
   late final Stream<List<RegistroSintoma>> _sintomas;
   late final Stream<List<RegistroAlimentacao>> _refeicoes;
+  late final Stream<List<RegistroHabito>> _habitos;
 
   @override
   void initState() {
     super.initState();
     _sintomas = _sintomasService.observarSintomas();
     _refeicoes = _alimentacaoService.observarRefeicoes();
+    _habitos = _habitosService.observarHabitos();
   }
 
   String _formatarDataHora(DateTime dataHora) {
@@ -39,6 +44,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
   List<_ItemHistorico> _unirRegistros(
     List<RegistroSintoma> sintomas,
     List<RegistroAlimentacao> refeicoes,
+    List<RegistroHabito> habitos,
   ) {
     final itens = <_ItemHistorico>[
       ...sintomas.map(
@@ -65,6 +71,16 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
               : '${registro.alimentos.join(', ')} • ${registro.observacao}',
         ),
       ),
+      ...habitos.map(
+        (registro) => _ItemHistorico(
+          dataHora: registro.dataHora,
+          icon: Icons.favorite_outline,
+          cor: const Color(0xFF2E8B57),
+          categoria: 'Hábitos',
+          titulo: 'Hábitos do dia',
+          descricao: _descricaoHabito(registro),
+        ),
+      ),
     ];
 
     itens.sort((a, b) => b.dataHora.compareTo(a.dataHora));
@@ -74,8 +90,9 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
   Widget _montarHistorico(
     List<RegistroSintoma> sintomas,
     List<RegistroAlimentacao> refeicoes,
+    List<RegistroHabito> habitos,
   ) {
-    final itens = _unirRegistros(sintomas, refeicoes);
+    final itens = _unirRegistros(sintomas, refeicoes, habitos);
     if (itens.isEmpty) {
       return const Center(
         child: Padding(
@@ -91,7 +108,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
               ),
               SizedBox(height: 6),
               Text(
-                'Os sintomas e as refeições aparecerão juntos aqui.',
+                'Os sintomas, as refeições e os hábitos aparecerão juntos aqui.',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Color(0xFF667085)),
               ),
@@ -170,6 +187,27 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
     );
   }
 
+  String _descricaoHabito(RegistroHabito registro) {
+    final horas = registro.horasSono == registro.horasSono.roundToDouble()
+        ? registro.horasSono.toInt().toString()
+        : registro.horasSono.toStringAsFixed(1).replaceAll('.', ',');
+    final partes = <String>[
+      'Sono: $horas h (${registro.qualidadeSono.toLowerCase()})',
+      'estresse ${registro.nivelEstresse}/5',
+      registro.evacuou
+          ? 'evacuação Bristol ${registro.consistenciaBristol ?? '-'}'
+          : 'sem evacuação',
+    ];
+
+    if (registro.atividadeFisica) {
+      partes.add('atividade ${registro.duracaoAtividadeMinutos} min');
+    }
+    if (registro.observacao.isNotEmpty) {
+      partes.add(registro.observacao);
+    }
+    return partes.join(' • ');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -188,17 +226,27 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
           return StreamBuilder<List<RegistroAlimentacao>>(
             stream: _refeicoes,
             builder: (context, refeicoesSnapshot) {
-              if (sintomasSnapshot.hasError || refeicoesSnapshot.hasError) {
-                return const Center(
-                  child: Text('Não foi possível carregar o histórico.'),
-                );
-              }
-              if (!sintomasSnapshot.hasData || !refeicoesSnapshot.hasData) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              return _montarHistorico(
-                sintomasSnapshot.data!,
-                refeicoesSnapshot.data!,
+              return StreamBuilder<List<RegistroHabito>>(
+                stream: _habitos,
+                builder: (context, habitosSnapshot) {
+                  if (sintomasSnapshot.hasError ||
+                      refeicoesSnapshot.hasError) {
+                    return const Center(
+                      child: Text('Não foi possível carregar o histórico.'),
+                    );
+                  }
+                  if (!sintomasSnapshot.hasData ||
+                      !refeicoesSnapshot.hasData ||
+                      (!habitosSnapshot.hasData &&
+                          !habitosSnapshot.hasError)) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  return _montarHistorico(
+                    sintomasSnapshot.data!,
+                    refeicoesSnapshot.data!,
+                    habitosSnapshot.data ?? const <RegistroHabito>[],
+                  );
+                },
               );
             },
           );
