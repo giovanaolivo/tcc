@@ -11,6 +11,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:fluttertcc/models/registro_alimentacao.dart';
 import 'package:fluttertcc/models/registro_sintoma.dart';
 import 'package:fluttertcc/screens/inicio_screen.dart';
+import 'package:fluttertcc/screens/login_screen.dart';
 
 void main() {
   testWidgets('exibe o painel inicial sem registros', (tester) async {
@@ -41,5 +42,18 @@ void main() {
       scrollable: find.byType(Scrollable).first,
     );
     expect(find.text('Continue registrando'), findsOneWidget);
+  });
+
+  testWidgets('alterna entre entrar e criar conta', (tester) async {
+    await tester.pumpWidget(const MaterialApp(home: LoginScreen()));
+
+    expect(find.text('Entrar'), findsOneWidget);
+    expect(find.text('Esqueci minha senha'), findsOneWidget);
+
+    await tester.tap(find.text('Ainda não tenho uma conta'));
+    await tester.pump();
+
+    expect(find.text('Criar conta'), findsOneWidget);
+    expect(find.text('Confirmar senha'), findsOneWidget);
   });
 }
