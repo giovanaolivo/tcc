@@ -8,23 +8,38 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:fluttertcc/main.dart';
+import 'package:fluttertcc/models/registro_alimentacao.dart';
+import 'package:fluttertcc/models/registro_sintoma.dart';
+import 'package:fluttertcc/screens/inicio_screen.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('exibe o painel inicial sem registros', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: InicioScreen(
+          sintomasStream: Stream<List<RegistroSintoma>>.value(const []),
+          refeicoesStream: Stream<List<RegistroAlimentacao>>.value(const []),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    expect(find.text('SAÚDE INTESTINAL'), findsOneWidget);
+    expect(find.text('Resumo de hoje'), findsOneWidget);
+    expect(find.text('Frequência dos sintomas'), findsOneWidget);
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    await tester.scrollUntilVisible(
+      find.text('Possíveis padrões'),
+      250,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('Possíveis padrões'), findsOneWidget);
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('Continue registrando'),
+      250,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(find.text('Continue registrando'), findsOneWidget);
   });
 }

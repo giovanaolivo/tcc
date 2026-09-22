@@ -25,5 +25,15 @@ service cloud.firestore {
                     && resource.data.usuarioId == request.auth.uid
                     && request.resource.data.usuarioId == request.auth.uid;
     }
+
+    match /registros_habitos/{registroId} {
+      allow create: if estaAutenticado()
+                    && request.resource.data.usuarioId == request.auth.uid;
+      allow read, delete: if estaAutenticado()
+                          && resource.data.usuarioId == request.auth.uid;
+      allow update: if estaAutenticado()
+                    && resource.data.usuarioId == request.auth.uid
+                    && request.resource.data.usuarioId == request.auth.uid;
+    }
   }
 }

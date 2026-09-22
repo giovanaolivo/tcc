@@ -8,16 +8,7 @@ class NavegacaoPrincipal extends StatelessWidget {
   void _selecionarDestino(BuildContext context, int indice) {
     if (indice == indiceAtual) return;
 
-    const rotas = ['', '/sintomas', '/alimentacao', '/historico'];
-    if (indice == 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Início será desenvolvido nas próximas etapas.'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-      return;
-    }
+    const rotas = ['/inicio', '/sintomas', '/alimentacao', '/historico'];
 
     Navigator.pushReplacementNamed(context, rotas[indice]);
   }

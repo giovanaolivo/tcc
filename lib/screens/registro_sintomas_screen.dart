@@ -124,15 +124,6 @@ class _RegistroSintomasScreenState extends State<RegistroSintomasScreen> {
     }
   }
 
-  void _mostrarModuloEmConstrucao(String modulo) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$modulo será desenvolvido nas próximas etapas.'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -329,6 +320,10 @@ class _RegistroSintomasScreenState extends State<RegistroSintomasScreen> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: 1,
         onDestinationSelected: (index) {
+          if (index == 0) {
+            Navigator.pushReplacementNamed(context, '/inicio');
+            return;
+          }
           if (index == 1) {
             Navigator.pushReplacementNamed(context, '/sintomas');
             return;
@@ -341,8 +336,6 @@ class _RegistroSintomasScreenState extends State<RegistroSintomasScreen> {
             Navigator.pushReplacementNamed(context, '/historico');
             return;
           }
-          const modulos = ['Início', 'Registrar', 'Dieta', 'Histórico'];
-          _mostrarModuloEmConstrucao(modulos[index]);
         },
         destinations: const [
           NavigationDestination(
