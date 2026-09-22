@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../services/alimentacao_service.dart';
+
 class RegistroAlimentacaoScreen extends StatefulWidget {
   const RegistroAlimentacaoScreen({super.key});
 
@@ -20,12 +22,14 @@ class _RegistroAlimentacaoScreenState extends State<RegistroAlimentacaoScreen> {
   ];
 
   final _formKey = GlobalKey<FormState>();
+  final _alimentacaoService = AlimentacaoService();
   final _outroTipoController = TextEditingController();
   final _alimentosController = TextEditingController();
   final _observacaoController = TextEditingController();
 
   String _tipoSelecionado = 'Café da manhã';
   DateTime _dataHora = DateTime.now();
+  bool _salvando = false;
 
   @override
   void dispose() {
@@ -73,16 +77,63 @@ class _RegistroAlimentacaoScreenState extends State<RegistroAlimentacaoScreen> {
     });
   }
 
-  void _salvarRegistro() {
+  List<String> _separarAlimentos(String texto) {
+    return texto
+        .split(',')
+        .map((alimento) => alimento.trim())
+        .where((alimento) => alimento.isNotEmpty)
+        .toList();
+  }
+
+  Future<void> _salvarRegistro() async {
     if (!_formKey.currentState!.validate()) return;
 
     FocusScope.of(context).unfocus();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Refeição preenchida com sucesso!'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    setState(() => _salvando = true);
+
+    try {
+      final tipoRefeicao = _tipoSelecionado == 'Outro'
+          ? _outroTipoController.text.trim()
+          : _tipoSelecionado;
+
+      await _alimentacaoService.adicionarRefeicao(
+        tipoRefeicao: tipoRefeicao,
+        alimentos: _separarAlimentos(_alimentosController.text),
+        dataHora: _dataHora,
+        observacao: _observacaoController.text.trim(),
+      );
+
+      if (!mounted) return;
+
+      _formKey.currentState!.reset();
+      _outroTipoController.clear();
+      _alimentosController.clear();
+      _observacaoController.clear();
+      setState(() {
+        _tipoSelecionado = 'Café da manhã';
+        _dataHora = DateTime.now();
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Refeição salva com sucesso!'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (erro) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Não foi possível salvar a refeição. Tente novamente.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _salvando = false);
+      }
+    }
   }
 
   void _mostrarModuloEmConstrucao(String modulo) {
@@ -200,7 +251,7 @@ class _RegistroAlimentacaoScreenState extends State<RegistroAlimentacaoScreen> {
                   ),
                 ),
                 validator: (valor) {
-                  if (valor == null || valor.trim().isEmpty) {
+                  if (valor == null || _separarAlimentos(valor).isEmpty) {
                     return 'Informe pelo menos um alimento';
                   }
                   return null;
@@ -241,11 +292,22 @@ class _RegistroAlimentacaoScreenState extends State<RegistroAlimentacaoScreen> {
               SizedBox(
                 height: 52,
                 child: FilledButton.icon(
-                  onPressed: _salvarRegistro,
-                  icon: const Icon(Icons.check_circle_outline),
-                  label: const Text(
-                    'Salvar refeição',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  onPressed: _salvando ? null : _salvarRegistro,
+                  icon: _salvando
+                      ? const SizedBox.square(
+                          dimension: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.check_circle_outline),
+                  label: Text(
+                    _salvando ? 'Salvando...' : 'Salvar refeição',
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   style: FilledButton.styleFrom(
                     backgroundColor: _azulPrincipal,
@@ -262,9 +324,16 @@ class _RegistroAlimentacaoScreenState extends State<RegistroAlimentacaoScreen> {
       bottomNavigationBar: NavigationBar(
         selectedIndex: 2,
         onDestinationSelected: (index) {
-          if (index == 2) return;
+          if (index == 2) {
+            Navigator.pushReplacementNamed(context, '/alimentacao');
+            return;
+          }
           if (index == 1) {
             Navigator.pushReplacementNamed(context, '/sintomas');
+            return;
+          }
+          if (index == 3) {
+            Navigator.pushReplacementNamed(context, '/historico');
             return;
           }
           const modulos = ['Início', 'Registrar', 'Dieta', 'Histórico'];
@@ -277,14 +346,14 @@ class _RegistroAlimentacaoScreenState extends State<RegistroAlimentacaoScreen> {
             label: 'Início',
           ),
           NavigationDestination(
-            icon: Icon(Icons.edit_outlined),
-            selectedIcon: Icon(Icons.edit),
-            label: 'Registrar',
+            icon: Icon(Icons.health_and_safety_outlined),
+            selectedIcon: Icon(Icons.health_and_safety),
+            label: 'Sintomas',
           ),
           NavigationDestination(
             icon: Icon(Icons.restaurant_outlined),
             selectedIcon: Icon(Icons.restaurant),
-            label: 'Dieta',
+            label: 'Alimentação',
           ),
           NavigationDestination(
             icon: Icon(Icons.insights_outlined),
