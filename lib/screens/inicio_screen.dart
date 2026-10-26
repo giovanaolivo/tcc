@@ -1,17 +1,25 @@
 import 'package:flutter/material.dart';
 
 import '../models/registro_alimentacao.dart';
+import '../models/registro_habito.dart';
 import '../models/registro_sintoma.dart';
 import '../services/alimentacao_service.dart';
 import '../services/autenticacao_service.dart';
+import '../services/habitos_service.dart';
 import '../services/sintomas_service.dart';
 import '../widgets/navegacao_principal.dart';
 
 class InicioScreen extends StatefulWidget {
-  const InicioScreen({super.key, this.sintomasStream, this.refeicoesStream});
+  const InicioScreen({
+    super.key,
+    this.sintomasStream,
+    this.refeicoesStream,
+    this.habitosStream,
+  });
 
   final Stream<List<RegistroSintoma>>? sintomasStream;
   final Stream<List<RegistroAlimentacao>>? refeicoesStream;
+  final Stream<List<RegistroHabito>>? habitosStream;
 
   @override
   State<InicioScreen> createState() => _InicioScreenState();
@@ -24,6 +32,7 @@ class _InicioScreenState extends State<InicioScreen> {
 
   late final Stream<List<RegistroSintoma>> _sintomas;
   late final Stream<List<RegistroAlimentacao>> _refeicoes;
+  late final Stream<List<RegistroHabito>> _habitos;
   final _autenticacaoService = AutenticacaoService();
 
   @override
@@ -32,6 +41,7 @@ class _InicioScreenState extends State<InicioScreen> {
     _sintomas = widget.sintomasStream ?? SintomasService().observarSintomas();
     _refeicoes =
         widget.refeicoesStream ?? AlimentacaoService().observarRefeicoes();
+    _habitos = widget.habitosStream ?? HabitosService().observarHabitos();
   }
 
   bool _aconteceuHoje(DateTime dataHora) {
@@ -39,6 +49,12 @@ class _InicioScreenState extends State<InicioScreen> {
     return dataHora.year == hoje.year &&
         dataHora.month == hoje.month &&
         dataHora.day == hoje.day;
+  }
+
+  bool _mesmoDia(DateTime primeira, DateTime segunda) {
+    return primeira.year == segunda.year &&
+        primeira.month == segunda.month &&
+        primeira.day == segunda.day;
   }
 
   String _formatarHorario(DateTime dataHora) {
@@ -50,6 +66,7 @@ class _InicioScreenState extends State<InicioScreen> {
   List<_AtividadeRecente> _reunirAtividades(
     List<RegistroSintoma> sintomas,
     List<RegistroAlimentacao> refeicoes,
+    List<RegistroHabito> habitos,
   ) {
     final atividades = <_AtividadeRecente>[
       ...sintomas.map(
@@ -70,6 +87,16 @@ class _InicioScreenState extends State<InicioScreen> {
           descricao: refeicao.alimentos.join(', '),
         ),
       ),
+      ...habitos.map(
+        (habito) => _AtividadeRecente(
+          dataHora: habito.dataHora,
+          icon: Icons.favorite_outline,
+          cor: const Color(0xFF2E8B57),
+          titulo: 'Hábitos do dia',
+          descricao:
+              '${habito.horasSono.toStringAsFixed(1).replaceAll('.', ',')} h de sono • estresse ${habito.nivelEstresse}/5',
+        ),
+      ),
     ];
 
     atividades.sort((a, b) => b.dataHora.compareTo(a.dataHora));
@@ -79,9 +106,11 @@ class _InicioScreenState extends State<InicioScreen> {
   _PadraoDescritivo? _identificarPadrao(
     List<RegistroSintoma> sintomas,
     List<RegistroAlimentacao> refeicoes,
+    List<RegistroHabito> habitos,
   ) {
     if (sintomas.length < _minimoDeRegistros ||
-        refeicoes.length < _minimoDeRegistros) {
+        refeicoes.length < _minimoDeRegistros ||
+        habitos.length < _minimoDeRegistros) {
       return null;
     }
 
@@ -122,17 +151,43 @@ class _InicioScreenState extends State<InicioScreen> {
       );
     }
 
+    final sintomasEmDiasComEstresseElevado = sintomas.where((sintoma) {
+      return habitos.any(
+        (habito) =>
+            _mesmoDia(sintoma.dataHora, habito.dataHora) &&
+            habito.nivelEstresse >= 4,
+      );
+    }).length;
+    final sintomasEmDiasComPoucoSono = sintomas.where((sintoma) {
+      return habitos.any(
+        (habito) =>
+            _mesmoDia(sintoma.dataHora, habito.dataHora) &&
+            habito.horasSono < 7,
+      );
+    }).length;
+    final sintomasEmDiasSemAtividade = sintomas.where((sintoma) {
+      return habitos.any(
+        (habito) =>
+            _mesmoDia(sintoma.dataHora, habito.dataHora) &&
+            !habito.atividadeFisica,
+      );
+    }).length;
+
     return _PadraoDescritivo(
       sintoma: sintomaMaisFrequente.key,
       quantidadeDoSintoma: sintomaMaisFrequente.value,
       alimento: alimentoMaisAssociado?.key,
       quantidadeDoAlimento: alimentoMaisAssociado?.value ?? 0,
+      sintomasEmDiasComEstresseElevado: sintomasEmDiasComEstresseElevado,
+      sintomasEmDiasComPoucoSono: sintomasEmDiasComPoucoSono,
+      sintomasEmDiasSemAtividade: sintomasEmDiasSemAtividade,
     );
   }
 
   Widget _conteudoComDados(
     List<RegistroSintoma> sintomas,
     List<RegistroAlimentacao> refeicoes,
+    List<RegistroHabito> habitos,
   ) {
     final sintomasHoje = sintomas.where(
       (item) => _aconteceuHoje(item.dataHora),
@@ -140,8 +195,9 @@ class _InicioScreenState extends State<InicioScreen> {
     final refeicoesHoje = refeicoes.where(
       (item) => _aconteceuHoje(item.dataHora),
     );
-    final atividades = _reunirAtividades(sintomas, refeicoes);
-    final padrao = _identificarPadrao(sintomas, refeicoes);
+    final habitosHoje = habitos.where((item) => _aconteceuHoje(item.dataHora));
+    final atividades = _reunirAtividades(sintomas, refeicoes, habitos);
+    final padrao = _identificarPadrao(sintomas, refeicoes, habitos);
 
     return ListView(
       padding: const EdgeInsets.fromLTRB(18, 22, 18, 32),
@@ -184,7 +240,9 @@ class _InicioScreenState extends State<InicioScreen> {
         const SizedBox(height: 10),
         _BotaoAtalho(
           icon: Icons.favorite_outline,
-          texto: 'Hábitos do dia',
+          texto: habitosHoje.isEmpty
+              ? 'Registrar hábitos do dia'
+              : 'Hábitos de hoje registrados',
           onTap: () => Navigator.pushNamed(context, '/habitos'),
         ),
         const SizedBox(height: 26),
@@ -222,6 +280,7 @@ class _InicioScreenState extends State<InicioScreen> {
         _CartaoPadroes(
           quantidadeDeSintomas: sintomas.length,
           quantidadeDeRefeicoes: refeicoes.length,
+          quantidadeDeHabitos: habitos.length,
           minimoDeRegistros: _minimoDeRegistros,
           padrao: padrao,
         ),
@@ -359,15 +418,25 @@ class _InicioScreenState extends State<InicioScreen> {
           return StreamBuilder<List<RegistroAlimentacao>>(
             stream: _refeicoes,
             builder: (context, refeicoesSnapshot) {
-              if (sintomasSnapshot.hasError || refeicoesSnapshot.hasError) {
-                return const _ErroCarregamento();
-              }
-              if (!sintomasSnapshot.hasData || !refeicoesSnapshot.hasData) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              return _conteudoComDados(
-                sintomasSnapshot.data!,
-                refeicoesSnapshot.data!,
+              return StreamBuilder<List<RegistroHabito>>(
+                stream: _habitos,
+                builder: (context, habitosSnapshot) {
+                  if (sintomasSnapshot.hasError ||
+                      refeicoesSnapshot.hasError ||
+                      habitosSnapshot.hasError) {
+                    return const _ErroCarregamento();
+                  }
+                  if (!sintomasSnapshot.hasData ||
+                      !refeicoesSnapshot.hasData ||
+                      !habitosSnapshot.hasData) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  return _conteudoComDados(
+                    sintomasSnapshot.data!,
+                    refeicoesSnapshot.data!,
+                    habitosSnapshot.data!,
+                  );
+                },
               );
             },
           );
@@ -518,12 +587,14 @@ class _CartaoPadroes extends StatelessWidget {
   const _CartaoPadroes({
     required this.quantidadeDeSintomas,
     required this.quantidadeDeRefeicoes,
+    required this.quantidadeDeHabitos,
     required this.minimoDeRegistros,
     required this.padrao,
   });
 
   final int quantidadeDeSintomas;
   final int quantidadeDeRefeicoes;
+  final int quantidadeDeHabitos;
   final int minimoDeRegistros;
   final _PadraoDescritivo? padrao;
 
@@ -531,7 +602,8 @@ class _CartaoPadroes extends StatelessWidget {
   Widget build(BuildContext context) {
     final possuiQuantidadeMinima =
         quantidadeDeSintomas >= minimoDeRegistros &&
-        quantidadeDeRefeicoes >= minimoDeRegistros;
+        quantidadeDeRefeicoes >= minimoDeRegistros &&
+        quantidadeDeHabitos >= minimoDeRegistros;
 
     return Container(
       width: double.infinity,
@@ -576,6 +648,12 @@ class _CartaoPadroes extends StatelessWidget {
                 _ProgressoRegistros(
                   rotulo: 'Refeições',
                   quantidade: quantidadeDeRefeicoes,
+                  minimo: minimoDeRegistros,
+                ),
+                const SizedBox(height: 10),
+                _ProgressoRegistros(
+                  rotulo: 'Hábitos',
+                  quantidade: quantidadeDeHabitos,
                   minimo: minimoDeRegistros,
                 ),
               ],
@@ -818,6 +896,18 @@ class _PadraoDisponivel extends StatelessWidget {
               ? 'Não houve refeição registrada nas 6 horas anteriores aos sintomas.'
               : '${padrao!.alimento} apareceu em refeições registradas nas 6 horas anteriores a ${padrao!.quantidadeDoAlimento} ocorrência(s) de sintomas.',
         ),
+        const SizedBox(height: 8),
+        Text(
+          '${padrao!.sintomasEmDiasComEstresseElevado} ocorrência(s) de sintomas foram registradas em dias com estresse elevado.',
+        ),
+        const SizedBox(height: 8),
+        Text(
+          '${padrao!.sintomasEmDiasComPoucoSono} ocorrência(s) foram registradas em dias com menos de 7 horas de sono.',
+        ),
+        const SizedBox(height: 8),
+        Text(
+          '${padrao!.sintomasEmDiasSemAtividade} ocorrência(s) foram registradas em dias sem atividade física.',
+        ),
         const SizedBox(height: 12),
         const Text(
           'Essas informações representam recorrências temporais e não indicam causa, diagnóstico ou recomendação clínica.',
@@ -886,10 +976,16 @@ class _PadraoDescritivo {
     required this.quantidadeDoSintoma,
     required this.alimento,
     required this.quantidadeDoAlimento,
+    required this.sintomasEmDiasComEstresseElevado,
+    required this.sintomasEmDiasComPoucoSono,
+    required this.sintomasEmDiasSemAtividade,
   });
 
   final String sintoma;
   final int quantidadeDoSintoma;
   final String? alimento;
   final int quantidadeDoAlimento;
+  final int sintomasEmDiasComEstresseElevado;
+  final int sintomasEmDiasComPoucoSono;
+  final int sintomasEmDiasSemAtividade;
 }

@@ -17,6 +17,7 @@ class HistoricoScreen extends StatefulWidget {
 
 class _HistoricoScreenState extends State<HistoricoScreen> {
   static const _azulPrincipal = Color(0xFF246FB5);
+  static const _filtros = ['Todos', 'Sintomas', 'Alimentação', 'Hábitos'];
 
   final _sintomasService = SintomasService();
   final _alimentacaoService = AlimentacaoService();
@@ -24,6 +25,7 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
   late final Stream<List<RegistroSintoma>> _sintomas;
   late final Stream<List<RegistroAlimentacao>> _refeicoes;
   late final Stream<List<RegistroHabito>> _habitos;
+  String _filtroSelecionado = 'Todos';
 
   @override
   void initState() {
@@ -92,22 +94,37 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
     List<RegistroAlimentacao> refeicoes,
     List<RegistroHabito> habitos,
   ) {
-    final itens = _unirRegistros(sintomas, refeicoes, habitos);
+    final todosOsItens = _unirRegistros(sintomas, refeicoes, habitos);
+    final itens = _filtroSelecionado == 'Todos'
+        ? todosOsItens
+        : todosOsItens
+              .where(
+                (item) =>
+                    item.categoria == _filtroSelecionado ||
+                    (_filtroSelecionado == 'Sintomas' &&
+                        item.categoria == 'Sintoma'),
+              )
+              .toList();
     if (itens.isEmpty) {
-      return const Center(
+      return Center(
         child: Padding(
-          padding: EdgeInsets.all(32),
+          padding: const EdgeInsets.all(32),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.history, size: 54, color: Color(0xFF98A2B3)),
-              SizedBox(height: 14),
+              const Icon(Icons.history, size: 54, color: Color(0xFF98A2B3)),
+              const SizedBox(height: 14),
               Text(
-                'Nenhum registro no histórico',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                _filtroSelecionado == 'Todos'
+                    ? 'Nenhum registro no histórico'
+                    : 'Nenhum registro de ${_filtroSelecionado.toLowerCase()}',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
-              SizedBox(height: 6),
-              Text(
+              const SizedBox(height: 6),
+              const Text(
                 'Os sintomas, as refeições e os hábitos aparecerão juntos aqui.',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Color(0xFF667085)),
@@ -230,21 +247,46 @@ class _HistoricoScreenState extends State<HistoricoScreen> {
                 stream: _habitos,
                 builder: (context, habitosSnapshot) {
                   if (sintomasSnapshot.hasError ||
-                      refeicoesSnapshot.hasError) {
+                      refeicoesSnapshot.hasError ||
+                      habitosSnapshot.hasError) {
                     return const Center(
                       child: Text('Não foi possível carregar o histórico.'),
                     );
                   }
                   if (!sintomasSnapshot.hasData ||
                       !refeicoesSnapshot.hasData ||
-                      (!habitosSnapshot.hasData &&
-                          !habitosSnapshot.hasError)) {
+                      (!habitosSnapshot.hasData && !habitosSnapshot.hasError)) {
                     return const Center(child: CircularProgressIndicator());
                   }
-                  return _montarHistorico(
-                    sintomasSnapshot.data!,
-                    refeicoesSnapshot.data!,
-                    habitosSnapshot.data ?? const <RegistroHabito>[],
+                  return Column(
+                    children: [
+                      SizedBox(
+                        height: 58,
+                        child: ListView.separated(
+                          padding: const EdgeInsets.fromLTRB(18, 10, 18, 6),
+                          scrollDirection: Axis.horizontal,
+                          itemCount: _filtros.length,
+                          separatorBuilder: (_, _) => const SizedBox(width: 8),
+                          itemBuilder: (context, index) {
+                            final filtro = _filtros[index];
+                            return FilterChip(
+                              label: Text(filtro),
+                              selected: _filtroSelecionado == filtro,
+                              onSelected: (_) {
+                                setState(() => _filtroSelecionado = filtro);
+                              },
+                            );
+                          },
+                        ),
+                      ),
+                      Expanded(
+                        child: _montarHistorico(
+                          sintomasSnapshot.data!,
+                          refeicoesSnapshot.data!,
+                          habitosSnapshot.data ?? const <RegistroHabito>[],
+                        ),
+                      ),
+                    ],
                   );
                 },
               );
