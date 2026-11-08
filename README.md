@@ -38,14 +38,6 @@ Se houver mais de um dispositivo disponível, use `flutter run -d <id-do-disposi
 
 Os arquivos [`lib/firebase_options.dart`](lib/firebase_options.dart) e [`android/app/google-services.json`](android/app/google-services.json) contêm a configuração utilizada no protótipo. Para testar, crie uma conta pela própria tela do aplicativo; o repositório **não fornece credenciais de teste**. Use somente dados fictícios, nunca dados reais de pacientes.
 
-## Roteiro rápido de verificação
-
-1. Na tela de entrada, crie uma conta de teste ou entre com uma conta já criada.
-2. Registre um sintoma, uma refeição e os hábitos do dia, usando apenas informações fictícias.
-3. Confira os registros nas respectivas telas de consulta e no histórico; experimente os filtros do histórico e a busca da lista de sintomas.
-4. Volte à tela inicial para visualizar os indicadores. As associações temporais descritivas dependem de pelo menos cinco registros em **cada** uma das três categorias.
-5. Saia da conta e entre novamente para verificar a permanência dos registros. A recuperação de senha depende de um endereço de e-mail ao qual você tenha acesso.
-
 ## Organização do código e dos dados
 
 | Pasta | Conteúdo |
