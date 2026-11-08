@@ -39,7 +39,7 @@ Aceite as licenças. Devem estar corretos **Flutter**, **Android toolchain** e *
 **4. Baixar e executar:**
 
 ```powershell
-git clone <URL-DO-REPOSITORIO>
+git clone https://github.com/giovanaolivo/tcc.git
 cd <pasta-do-repositorio>
 flutter pub get
 flutter devices
